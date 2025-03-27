@@ -1,0 +1,114 @@
+---
+title: "Work Magnet Monitoring"
+format: 
+  dashboard:
+    orientation: rows
+    scrolling: true
+---
+
+```{r}
+#| include: false
+
+# Packages
+pacman::p_load(
+  tidyverse, 
+  rio, 
+  here,
+  DT, 
+  lubridate
+)
+
+# Données
+work_magnet_all <- import(here("data", "work_magnet_all.csv"))
+work_magnet_su <- import(here("data", "work_magnet_su.csv"))
+```
+
+# Vue globale
+
+<iframe src="https://data.enseignementsup-recherche.gouv.fr/explore/embed/dataset/openalex-affiliations-corrections/table/?&static=false&datasetcard=true" width="100%" height="600" frameborder="0"></iframe>
+
+# Activités GT OpenAlex 
+
+## 
+
+```{r}
+demandes <- work_magnet_su %>% 
+  count() %>% 
+  paste()
+
+date_opened <- work_magnet_su %>% 
+  slice_max(date_opened) %>% 
+  distinct(date_opened) %>% 
+  mutate(date_opened = as.character(date_opened)) %>% 
+  paste()
+
+traitees <-  work_magnet_su %>% 
+  filter(!is.na(date_closed)) %>% 
+  count() %>% 
+  paste()
+
+date_closed <- work_magnet_su %>% 
+  slice_max(date_closed) %>% 
+  distinct(date_closed) %>% 
+  mutate(date_closed = as.character(date_closed)) %>%
+  paste()
+```
+
+```{r}
+#| content: valuebox
+#| title: "Demandes de correction soumises"
+list(
+  value = demandes,
+  icon = "arrow-repeat",
+  color = "orange"
+)
+```
+```{r}
+#| content: valuebox
+#| title: "Date dernière demande"
+list(
+  value = date_opened
+)
+```
+```{r}
+#| content: valuebox
+#| title: "Demandes de correction traitées"
+list(
+  value = traitees
+)
+```
+```{r}
+#| content: valuebox
+#| title: "Date dernière correction"
+list(
+  value = date_closed
+)
+```
+
+##
+
+```{r}
+#| fig-width: 6
+#| fig-height: 3.5
+
+work_magnet_su %>% 
+  filter(year(date_opened) == 2025) %>% 
+  mutate(date_opened = month(date_opened, label = TRUE)) %>% 
+  ggplot() +
+  aes(x = date_opened) + 
+  geom_bar() 
+```
+
+
+##
+
+```{r}
+work_magnet_su %>% 
+  datatable(options = list(paging = FALSE, 
+                           scrolly = "300px", 
+                           searching = FALSE, 
+                           dom = "t"),
+            caption = "Source : Ministère de l'enseignement supérieur et de la recherche, https://data.enseignementsup-recherche.gouv.fr/explore/dataset/openalex-affiliations-corrections/information/")
+```
+
+
