@@ -3,7 +3,6 @@ title: "Work Magnet Monitoring"
 format: 
   dashboard:
     orientation: rows
-    scrolling: true
 ---
 
 ```{r}
