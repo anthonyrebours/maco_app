@@ -1,8 +1,6 @@
 ---
-title: "Work Magnet Monitoring"
-format: 
-  dashboard:
-    orientation: rows
+title: "Untitled"
+format: dashboard
 ---
 
 ```{r}
@@ -21,6 +19,8 @@ pacman::p_load(
 work_magnet_all <- import(here("data", "work_magnet_all.csv"))
 work_magnet_su <- import(here("data", "work_magnet_su.csv"))
 ```
+
+
 
 # Vue globale
 
@@ -84,7 +84,9 @@ list(
 )
 ```
 
-##
+## {orientation="columns"}
+
+### 
 
 ```{r}
 #| fig-width: 6
@@ -98,8 +100,7 @@ work_magnet_su %>%
   geom_bar() 
 ```
 
-
-##
+### 
 
 ```{r}
 work_magnet_su %>% 
@@ -109,5 +110,7 @@ work_magnet_su %>%
                            dom = "t"),
             caption = "Source : Ministère de l'enseignement supérieur et de la recherche, https://data.enseignementsup-recherche.gouv.fr/explore/dataset/openalex-affiliations-corrections/information/")
 ```
+
+
 
 
