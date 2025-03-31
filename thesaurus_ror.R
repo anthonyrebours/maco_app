@@ -26,5 +26,5 @@ su %>%
                                                   pattern = "https://ror.org/")) %>% 
   rename("from" = associated_institutions_ror, 
          "to" = associated_institutions_display_name) %>% 
-  mutate("col") %>% 
-  export(here("data", "thesaurus_ror.csv"), encoding = "Latin-1")
+  mutate(col = "added_rors") %>% 
+  export(here("data", "thesaurus_ror.csv"))

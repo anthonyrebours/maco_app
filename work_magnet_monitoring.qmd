@@ -1,5 +1,5 @@
 ---
-title: "Untitled"
+title: "Work Magnet monitoring"
 format: dashboard
 ---
 
@@ -12,12 +12,25 @@ pacman::p_load(
   rio, 
   here,
   DT, 
-  lubridate
+  lubridate, 
+  plotly, 
+  matchmaker, 
+  reactable, 
+  janitor, 
+  forcats, 
+  plotly
 )
 
 # Données
 work_magnet_all <- import(here("data", "work_magnet_all.csv"))
 work_magnet_su <- import(here("data", "work_magnet_su.csv"))
+
+# Thesaurus ror pour institutions de recherche
+thesaurus <- import(here("data", "thesaurus_ror.csv"))
+
+# Information mises à jour
+maj <- file.info(here("data", "work_magnet_su.csv"))$ctime
+maj <- format(maj, format = "%d/%m/%Y")  
 ```
 
 
@@ -28,17 +41,11 @@ work_magnet_su <- import(here("data", "work_magnet_su.csv"))
 
 # Activités GT OpenAlex 
 
-## 
+## {}
 
 ```{r}
 demandes <- work_magnet_su %>% 
   count() %>% 
-  paste()
-
-date_opened <- work_magnet_su %>% 
-  slice_max(date_opened) %>% 
-  distinct(date_opened) %>% 
-  mutate(date_opened = as.character(date_opened)) %>% 
   paste()
 
 traitees <-  work_magnet_su %>% 
@@ -46,70 +53,171 @@ traitees <-  work_magnet_su %>%
   count() %>% 
   paste()
 
-date_closed <- work_magnet_su %>% 
-  slice_max(date_closed) %>% 
-  distinct(date_closed) %>% 
-  mutate(date_closed = as.character(date_closed)) %>%
+en_cours <- work_magnet_su %>% 
+  filter(is.na(date_closed)) %>% 
+  count() %>% 
   paste()
 ```
 
 ```{r}
 #| content: valuebox
-#| title: "Demandes de correction soumises"
+#| title: "Demandes de correction soumises" 
 list(
   value = demandes,
-  icon = "arrow-repeat",
-  color = "orange"
+  icon = "box-arrow-in-up"
 )
 ```
 ```{r}
 #| content: valuebox
-#| title: "Date dernière demande"
+#| title: "Demandes traitées"
 list(
-  value = date_opened
+  value = traitees,
+  icon = "check-circle"
 )
 ```
 ```{r}
 #| content: valuebox
-#| title: "Demandes de correction traitées"
+#| title: "Demandes en cours"
 list(
-  value = traitees
-)
-```
-```{r}
-#| content: valuebox
-#| title: "Date dernière correction"
-list(
-  value = date_closed
+  value = en_cours, 
+  icon = "arrow-repeat"
 )
 ```
 
 ## {orientation="columns"}
 
-### 
+### {.tabset title="Demandes de corrections soumises (par mois)"}
 
 ```{r}
-#| fig-width: 6
-#| fig-height: 3.5
+#| title: "2025"
+
+monthly_breaks <- seq.Date(from = as.Date("2025-01-01"), 
+                           to = as.Date("2025-12-31"), 
+                           by = "months")
+
 
 work_magnet_su %>% 
   filter(year(date_opened) == 2025) %>% 
-  mutate(date_opened = month(date_opened, label = TRUE)) %>% 
   ggplot() +
   aes(x = date_opened) + 
-  geom_bar() 
+  geom_histogram(
+    breaks = monthly_breaks, 
+    color = "white", 
+    fill = "#1D2769") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 15)) +
+  scale_x_date(date_breaks = "1 months",
+               date_labels = "%b") +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "", 
+       y = "") 
 ```
 
-### 
+```{r}
+#| title: "2024"
+
+monthly_breaks <- seq.Date(
+  from = as.Date("2024-01-01"), 
+  to = as.Date("2024-12-31"), 
+  by = "months")
+
+
+work_magnet_su %>% 
+  filter(year(date_opened) == 2024) %>% 
+  ggplot() +
+  aes(x = date_opened) + 
+  geom_histogram(
+    breaks = monthly_breaks,
+    color = "white",
+    fill = "#1D2769") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 15)) +
+  scale_x_date(date_breaks = "1 months",
+               date_labels = "%b") +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "", 
+       y = "")
+```
+
+
+
+### {ror manquants corrigés (au total)}
+
+```{r}
+#| title: "Publications récupérées (par institutions de recherche)"
+
+work_magnet_su %>% 
+  filter(!is.na(date_closed)) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
+  separate_rows(openalex_works_examples, sep = ";") %>% 
+  group_by(added_rors) %>% 
+  count() %>% 
+  match_df(dictionary = thesaurus, 
+           from = "from", 
+           to = "to", 
+           by = "col") %>%
+  filter(!is.na(added_rors)) %>% 
+  arrange(desc(n)) %>% 
+  adorn_totals(where = "row") %>% 
+  reactable(striped = TRUE, pagination = FALSE)
+```
+
+```{r}
+#| title: "Demandes de correction (par institutions de recherche)"
+
+work_magnet_su %>% 
+  filter(!is.na(date_closed)) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
+  separate_rows(added_rors, sep = ";") %>% 
+  group_by(added_rors) %>% 
+  count() %>% 
+  match_df(dictionary = thesaurus, 
+           from = "from", 
+           to = "to", 
+           by = "col") %>% 
+  filter(!is.na(added_rors)) %>% 
+  arrange(desc(n)) %>% 
+  adorn_totals(where = "row") %>% 
+  reactable(striped = TRUE, pagination = FALSE)
+```
+
+# Structures de recherche 
+
+## {.sidebar} 
+
+## {width="60%"}
 
 ```{r}
 work_magnet_su %>% 
-  datatable(options = list(paging = FALSE, 
-                           scrolly = "300px", 
-                           searching = FALSE, 
-                           dom = "t"),
-            caption = "Source : Ministère de l'enseignement supérieur et de la recherche, https://data.enseignementsup-recherche.gouv.fr/explore/dataset/openalex-affiliations-corrections/information/")
+  filter(!is.na(date_closed)) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
+  separate_rows(added_rors, sep = ";") %>% 
+  group_by(added_rors) %>% 
+  count() %>% 
+  match_df(dictionary = thesaurus, 
+           from = "from", 
+           to = "to", 
+           by = "col") %>% 
+  filter(!is.na(added_rors)) %>% 
+  ggplot() +
+  aes(y = fct_rev(fct_infreq(added_rors, n)), x = n) + 
+  geom_col(color = "white", fill = "#1D2769") +
+  theme_classic() +
+  labs(x = "", 
+       y = "")
 ```
+
+## {width="40%"}
+
+```{r}
+work_magnet_su %>% 
+  select(added_rors, raw_affiliation_name) %>%
+  reactable(pagination = FALSE, striped = TRUE)
+```
+
 
 
 
