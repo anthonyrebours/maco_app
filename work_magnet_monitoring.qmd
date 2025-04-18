@@ -1,12 +1,16 @@
 ---
 title: "Work Magnet monitoring"
-format: dashboard
+format: 
+  dashboard:
+    scrolling: true
+    embed-resources: true
 ---
 
 ```{r}
 #| include: false
 
-# Packages
+
+## Packages
 pacman::p_load(
   tidyverse, 
   rio, 
@@ -21,23 +25,25 @@ pacman::p_load(
   plotly
 )
 
-# Données
-work_magnet_all <- import(here("data", "work_magnet_all.csv"))
-work_magnet_su <- import(here("data", "work_magnet_su.csv"))
 
-# Thesaurus ror pour institutions de recherche
+## Données
+work_magnet_all <- import(here("data", "work_magnet_all.csv"))
+
+
+## Thesaurus ror pour institutions de recherche
 thesaurus <- import(here("data", "thesaurus_ror.csv"))
 
-# Information mises à jour
+
+## Information mises à jour
 maj <- file.info(here("data", "work_magnet_su.csv"))$ctime
 maj <- format(maj, format = "%d/%m/%Y")  
+
+
+## Préparation des données 
+work_magnet_su <- work_magnet_all %>% 
+  filter(contact_domain == "sorbonne-universite.fr")
+
 ```
-
-
-
-# Vue globale
-
-<iframe src="https://data.enseignementsup-recherche.gouv.fr/explore/embed/dataset/openalex-affiliations-corrections/table/?&static=false&datasetcard=true" width="100%" height="600" frameborder="0"></iframe>
 
 # Activités GT OpenAlex 
 
@@ -84,19 +90,22 @@ list(
 )
 ```
 
-## {orientation="columns"}
+## {orientation="row"}
 
 ### {.tabset title="Demandes de corrections soumises (par mois)"}
 
 ```{r}
 #| title: "2025"
+#| fig-width: 10
+#| fig-height: 5
 
-monthly_breaks <- seq.Date(from = as.Date("2025-01-01"), 
-                           to = as.Date("2025-12-31"), 
-                           by = "months")
+monthly_breaks <- seq.Date(
+  from = as.Date("2025-01-01"), 
+  to = as.Date("2025-12-31"), 
+  by = "months")
 
 
-work_magnet_su %>% 
+p <- work_magnet_su %>% 
   filter(year(date_opened) == 2025) %>% 
   ggplot() +
   aes(x = date_opened) + 
@@ -110,11 +119,13 @@ work_magnet_su %>%
                date_labels = "%b") +
   scale_y_continuous(expand = c(0,0)) +
   labs(x = "", 
-       y = "") 
+       y = "")
+ggplotly(p)
 ```
 
 ```{r}
 #| title: "2024"
+
 
 monthly_breaks <- seq.Date(
   from = as.Date("2024-01-01"), 
@@ -122,7 +133,7 @@ monthly_breaks <- seq.Date(
   by = "months")
 
 
-work_magnet_su %>% 
+p <- work_magnet_su %>% 
   filter(year(date_opened) == 2024) %>% 
   ggplot() +
   aes(x = date_opened) + 
@@ -137,14 +148,96 @@ work_magnet_su %>%
   scale_y_continuous(expand = c(0,0)) +
   labs(x = "", 
        y = "")
+ggplotly(p)
+```
+
+### {.tabset title="Demandes non corrigées (par mois)"}
+
+```{r}
+#| title: "2025"
+
+
+monthly_breaks <- seq.Date(
+  from = as.Date("2025-01-01"), 
+  to = as.Date("2025-12-31"), 
+  by = "months")
+
+
+p <- work_magnet_su %>% 
+  filter(year(date_opened) == 2025) %>% 
+  filter(is.na(date_closed)) %>% 
+  ggplot() +
+  aes(x = date_opened) + 
+  geom_histogram(
+    breaks = monthly_breaks,
+    color = "white",
+    fill = "#1D2769") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 15)) +
+  scale_x_date(date_breaks = "1 months",
+               date_labels = "%b") +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "", 
+       y = "")
+ggplotly(p)
+```
+
+```{r}
+#| title: "2024"
+
+
+monthly_breaks <- seq.Date(
+  from = as.Date("2024-01-01"), 
+  to = as.Date("2024-12-31"), 
+  by = "months")
+
+
+p <- work_magnet_su %>% 
+  filter(year(date_opened) == 2024) %>% 
+  filter(is.na(date_closed)) %>% 
+  ggplot() +
+  aes(x = date_opened) + 
+  geom_histogram(
+    breaks = monthly_breaks,
+    color = "white",
+    fill = "#1D2769") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 15)) +
+  scale_x_date(date_breaks = "1 months",
+               date_labels = "%b") +
+  scale_y_continuous(expand = c(0,0)) +
+  labs(x = "", 
+       y = "")
+ggplotly(p)
+```
+
+## 
+
+```{r}
+
+work_magnet_all %>% 
+  filter(grepl("02en5vm52", removed_rors)) %>% 
+  count(contact_domain) %>% 
+  ggplot() +
+  aes(y = contact_domain,
+      x = n) +
+  geom_col() +
+  theme_classic() +
+  theme(axis.text = element_text(size = 15)) +
+  scale_x_continuous(
+    expand = c(0, 0),
+    breaks = seq(from = 0, to = 15, by = 1)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(x = "", 
+       y = "")
 ```
 
 
-
-### {ror manquants corrigés (au total)}
+## {ror manquants corrigés (au total)}
 
 ```{r}
 #| title: "Publications récupérées (par institutions de recherche)"
+
 
 work_magnet_su %>% 
   filter(!is.na(date_closed)) %>% 
@@ -160,11 +253,17 @@ work_magnet_su %>%
   filter(!is.na(added_rors)) %>% 
   arrange(desc(n)) %>% 
   adorn_totals(where = "row") %>% 
-  reactable(striped = TRUE, pagination = FALSE)
+  reactable(
+    striped = TRUE, 
+    pagination = FALSE,
+    height = 600
+    ) 
+  
 ```
 
 ```{r}
 #| title: "Demandes de correction (par institutions de recherche)"
+
 
 work_magnet_su %>% 
   filter(!is.na(date_closed)) %>% 
@@ -180,7 +279,10 @@ work_magnet_su %>%
   filter(!is.na(added_rors)) %>% 
   arrange(desc(n)) %>% 
   adorn_totals(where = "row") %>% 
-  reactable(striped = TRUE, pagination = FALSE)
+  reactable(
+    striped = TRUE, 
+    pagination = FALSE,
+    height = 600)
 ```
 
 # Structures de recherche 
@@ -190,6 +292,9 @@ work_magnet_su %>%
 ## {width="60%"}
 
 ```{r}
+#| title: "Affiliations corrigées par structures"
+
+
 work_magnet_su %>% 
   filter(!is.na(date_closed)) %>% 
   mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
@@ -215,7 +320,10 @@ work_magnet_su %>%
 ```{r}
 work_magnet_su %>% 
   select(added_rors, raw_affiliation_name) %>%
-  reactable(pagination = FALSE, striped = TRUE)
+  reactable(
+    pagination = FALSE, 
+    striped = TRUE, 
+    height = 900)
 ```
 
 
