@@ -2,8 +2,11 @@
 title: "Work Magnet monitoring"
 format: 
   dashboard:
-    scrolling: true
     embed-resources: true
+    orientation: columns
+    theme: 
+      - flatly 
+      - custom.scss
 ---
 
 ```{r}
@@ -12,6 +15,7 @@ format:
 
 ## Packages
 pacman::p_load(
+  quarto,
   tidyverse, 
   rio, 
   here,
@@ -45,9 +49,9 @@ work_magnet_su <- work_magnet_all %>%
 
 ```
 
-# Activités GT OpenAlex 
+# Activités GT OpenAlex {}
 
-## {}
+## {width="10%"}
 
 ```{r}
 demandes <- work_magnet_su %>% 
@@ -70,15 +74,8 @@ en_cours <- work_magnet_su %>%
 #| title: "Demandes de correction soumises" 
 list(
   value = demandes,
-  icon = "box-arrow-in-up"
-)
-```
-```{r}
-#| content: valuebox
-#| title: "Demandes traitées"
-list(
-  value = traitees,
-  icon = "check-circle"
+  icon = "box-arrow-in-up",
+  color = "vb-primary"
 )
 ```
 ```{r}
@@ -86,18 +83,29 @@ list(
 #| title: "Demandes en cours"
 list(
   value = en_cours, 
-  icon = "arrow-repeat"
+  icon = "arrow-repeat",
+  color = "vb-info"
+)
+```
+```{r}
+#| content: valuebox
+#| title: "Demandes traitées"
+list(
+  value = traitees,
+  icon = "check-circle",
+  color = "vb-success"
 )
 ```
 
-## {orientation="row"}
+
+## {width="55%"}
 
 ### {.tabset title="Demandes de corrections soumises (par mois)"}
 
 ```{r}
 #| title: "2025"
-#| fig-width: 10
-#| fig-height: 5
+#| out-height: "50%"
+
 
 monthly_breaks <- seq.Date(
   from = as.Date("2025-01-01"), 
@@ -125,6 +133,7 @@ ggplotly(p)
 
 ```{r}
 #| title: "2024"
+#| out-height: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -155,6 +164,7 @@ ggplotly(p)
 
 ```{r}
 #| title: "2025"
+#| out-height: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -184,6 +194,7 @@ ggplotly(p)
 
 ```{r}
 #| title: "2024"
+#| out-heigth: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -211,11 +222,26 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
-## 
+## {width="35%"}
+
+```{r}
+work_magnet_su %>% 
+  filter(state == "open") %>% 
+  select(github_issue_id, added_rors, date_opened) %>% 
+  reactable(
+    striped = TRUE, 
+    pagination = FALSE,
+    showSortable = TRUE,
+    columns = list(github_issue_id = colDef(align = "left"))
+    )
+```
+
+# Sorbonne université
 
 ```{r}
 
-work_magnet_all %>% 
+
+p <- work_magnet_all %>% 
   filter(grepl("02en5vm52", removed_rors)) %>% 
   count(contact_domain) %>% 
   ggplot() +
@@ -230,8 +256,8 @@ work_magnet_all %>%
   scale_y_discrete(expand = c(0, 0)) +
   labs(x = "", 
        y = "")
+ggplotly(p)
 ```
-
 
 ## {ror manquants corrigés (au total)}
 
@@ -295,7 +321,7 @@ work_magnet_su %>%
 #| title: "Affiliations corrigées par structures"
 
 
-work_magnet_su %>% 
+p <- work_magnet_su %>% 
   filter(!is.na(date_closed)) %>% 
   mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
   mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
@@ -313,17 +339,19 @@ work_magnet_su %>%
   theme_classic() +
   labs(x = "", 
        y = "")
+ggplotly(p)
 ```
 
 ## {width="40%"}
 
 ```{r}
+
+
 work_magnet_su %>% 
   select(added_rors, raw_affiliation_name) %>%
   reactable(
     pagination = FALSE, 
-    striped = TRUE, 
-    height = 900)
+    striped = TRUE)
 ```
 
 
