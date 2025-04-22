@@ -1,5 +1,5 @@
 ---
-title: "Work Magnet monitoring"
+title: "Monitoring des Affiliations et Curation d'Openalex"
 format: 
   dashboard:
     embed-resources: true
@@ -32,6 +32,7 @@ pacman::p_load(
 
 ## Données
 work_magnet_all <- import(here("data", "work_magnet_all.csv"))
+su_structures <- import(here("data", "su_structures.rds"))
 
 
 ## Thesaurus ror pour institutions de recherche
@@ -39,11 +40,22 @@ thesaurus <- import(here("data", "thesaurus_ror.csv"))
 
 
 ## Information mises à jour
-maj <- file.info(here("data", "work_magnet_su.csv"))$ctime
-maj <- format(maj, format = "%d/%m/%Y")  
+maj <- file.info(here("data", "work_magnet_all.csv"))$mtime
+maj <- as.Date(maj, format = "%Y-%m-%d")
+
 
 
 ## Préparation des données 
+su_structures <- su_structures %>% unnest(display_name_acronyms)
+su_structures <- su_structures %>% 
+  distinct(across(-display_name_acronyms), .keep_all = TRUE)
+su_structures <- su_structures %>% 
+  mutate(display_name_acronyms = ifelse(
+    !is.na(display_name_acronyms), 
+    display_name_acronyms, 
+    display_name))
+su_structures <- su_structures %>% 
+  separate(display_name_acronyms, into = "Acronymes", sep = ":")
 work_magnet_su <- work_magnet_all %>% 
   filter(contact_domain == "sorbonne-universite.fr")
 
@@ -104,7 +116,6 @@ list(
 
 ```{r}
 #| title: "2025"
-#| out-height: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -133,7 +144,6 @@ ggplotly(p)
 
 ```{r}
 #| title: "2024"
-#| out-height: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -164,7 +174,6 @@ ggplotly(p)
 
 ```{r}
 #| title: "2025"
-#| out-height: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -194,7 +203,6 @@ ggplotly(p)
 
 ```{r}
 #| title: "2024"
-#| out-heigth: "50%"
 
 
 monthly_breaks <- seq.Date(
@@ -225,20 +233,37 @@ ggplotly(p)
 ## {width="35%"}
 
 ```{r}
+#| title: "Issues non résolues"
+
+
 work_magnet_su %>% 
   filter(state == "open") %>% 
-  select(github_issue_id, added_rors, date_opened) %>% 
+  mutate(date_closed = maj) %>% 
+  mutate("Délai" = round(difftime(date_closed, date_opened, units = "days"))) %>% 
+  mutate("Correction" = ifelse(has_added_rors == "1", "ror ajouté", "ror retiré")) %>% 
+  mutate("Structure" = ifelse(has_added_rors == "1", added_rors, removed_rors)) %>% 
+  select(
+    "Issue" = github_issue_id, 
+    Correction, 
+    Structure,
+    "Date d'ouverture" = date_opened,
+    Délai
+    ) %>% 
+  arrange(desc(Délai)) %>%
+  mutate(Délai = paste(Délai, "jours")) %>% 
   reactable(
     striped = TRUE, 
     pagination = FALSE,
     showSortable = TRUE,
-    columns = list(github_issue_id = colDef(align = "left"))
+    searchable = TRUE,
+    defaultColDef = colDef(align = "left")
     )
 ```
 
 # Sorbonne université
 
 ```{r}
+#| title: "Retrait de l'affiliation Sorbonne Université"
 
 
 p <- work_magnet_all %>% 
@@ -318,25 +343,29 @@ work_magnet_su %>%
 ## {width="60%"}
 
 ```{r}
-#| title: "Affiliations corrigées par structures"
+#| title: "Demande de correction d'affiliations par structures"
 
 
-p <- work_magnet_su %>% 
-  filter(!is.na(date_closed)) %>% 
+p <- work_magnet_su %>%  
   mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
   separate_rows(added_rors, sep = ";") %>% 
-  group_by(added_rors) %>% 
-  count() %>% 
-  match_df(dictionary = thesaurus, 
-           from = "from", 
-           to = "to", 
-           by = "col") %>% 
-  filter(!is.na(added_rors)) %>% 
+  filter(added_rors != "") %>% 
+  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
+  mutate(Acronymes = ifelse(
+    !is.na(Acronymes), 
+    Acronymes, 
+    added_rors)) %>% 
+  count(Acronymes, state) %>% 
   ggplot() +
-  aes(y = fct_rev(fct_infreq(added_rors, n)), x = n) + 
-  geom_col(color = "white", fill = "#1D2769") +
+  aes(y = fct_rev(fct_infreq(Acronymes, n)), 
+      x = n, 
+      fill = state) + 
+  geom_col() +
   theme_classic() +
+  scale_fill_manual(values = c("open" = "#E6332A", 
+                               "closed" = "#1D2769"),
+                    name = "Etat :") +
   labs(x = "", 
        y = "")
 ggplotly(p)
