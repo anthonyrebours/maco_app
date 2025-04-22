@@ -260,7 +260,7 @@ work_magnet_su %>%
     )
 ```
 
-# Sorbonne université
+# Corrections externes
 
 ```{r}
 #| title: "Retrait de l'affiliation Sorbonne Université"
@@ -283,6 +283,56 @@ p <- work_magnet_all %>%
        y = "")
 ggplotly(p)
 ```
+
+
+# Structures de recherche 
+
+## {.sidebar} 
+
+## {width="60%"}
+
+```{r}
+#| title: "Demande de correction d'affiliations par structures"
+
+
+p <- work_magnet_su %>%  
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
+  separate_rows(added_rors, sep = ";") %>% 
+  filter(added_rors != "") %>% 
+  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
+  mutate(Acronymes = ifelse(
+    !is.na(Acronymes), 
+    Acronymes, 
+    added_rors)) %>% 
+  count(Acronymes, state) %>% 
+  ggplot() +
+  aes(y = fct_rev(fct_infreq(Acronymes, n)), 
+      x = n, 
+      fill = state) + 
+  geom_col() +
+  theme_classic() +
+  scale_fill_manual(values = c("open" = "#E6332A", 
+                               "closed" = "#1D2769"),
+                    name = "Etat :") +
+  labs(x = "", 
+       y = "")
+ggplotly(p)
+```
+
+## {width="40%"}
+
+```{r}
+
+
+work_magnet_su %>% 
+  select(added_rors, raw_affiliation_name) %>%
+  reactable(
+    pagination = FALSE, 
+    striped = TRUE)
+```
+
+# Corrections globales
 
 ## {ror manquants corrigés (au total)}
 
@@ -335,55 +385,4 @@ work_magnet_su %>%
     pagination = FALSE,
     height = 600)
 ```
-
-# Structures de recherche 
-
-## {.sidebar} 
-
-## {width="60%"}
-
-```{r}
-#| title: "Demande de correction d'affiliations par structures"
-
-
-p <- work_magnet_su %>%  
-  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
-  separate_rows(added_rors, sep = ";") %>% 
-  filter(added_rors != "") %>% 
-  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
-  mutate(Acronymes = ifelse(
-    !is.na(Acronymes), 
-    Acronymes, 
-    added_rors)) %>% 
-  count(Acronymes, state) %>% 
-  ggplot() +
-  aes(y = fct_rev(fct_infreq(Acronymes, n)), 
-      x = n, 
-      fill = state) + 
-  geom_col() +
-  theme_classic() +
-  scale_fill_manual(values = c("open" = "#E6332A", 
-                               "closed" = "#1D2769"),
-                    name = "Etat :") +
-  labs(x = "", 
-       y = "")
-ggplotly(p)
-```
-
-## {width="40%"}
-
-```{r}
-
-
-work_magnet_su %>% 
-  select(added_rors, raw_affiliation_name) %>%
-  reactable(
-    pagination = FALSE, 
-    striped = TRUE)
-```
-
-
-
-
 
