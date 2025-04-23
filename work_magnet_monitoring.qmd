@@ -63,7 +63,7 @@ work_magnet_su <- work_magnet_all %>%
 
 # Activités GT OpenAlex {}
 
-## {width="10%"}
+## Value box {width="10%"}
 
 ```{r}
 demandes <- work_magnet_su %>% 
@@ -110,7 +110,7 @@ list(
 ```
 
 
-## {width="55%"}
+## Graphiques demandes soumises et non corrigées {width="55%"}
 
 ### {.tabset title="Demandes de corrections soumises (par mois)"}
 
@@ -230,10 +230,30 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
-## {width="35%"}
+## Tableau détails demandes en cours {width="35%"}
+
+### 
 
 ```{r}
-#| title: "Issues non résolues"
+df <- work_magnet_su %>% 
+  mutate(date_closed = as.Date(date_closed)) %>% 
+  mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
+  mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
+  
+  
+summary(df$Délai)
+df %>% 
+  tabyl(Délai) %>%
+  ggplot() +
+  aes(x = Délai, 
+      y = n) +
+  geom_histogram()
+```
+
+### 
+
+```{r}
+#| title: "Demandes en cours"
 
 
 work_magnet_su %>% 
@@ -262,32 +282,103 @@ work_magnet_su %>%
 
 # Corrections externes
 
+## 
+
 ```{r}
-#| title: "Retrait de l'affiliation Sorbonne Université"
+#| title: "Retrait de l'affiliation Sorbonne université"
 
 
 p <- work_magnet_all %>% 
   filter(grepl("02en5vm52", removed_rors)) %>% 
   count(contact_domain) %>% 
   ggplot() +
-  aes(y = contact_domain,
+  aes(y = fct_rev(fct_infreq(contact_domain, n)),
       x = n) +
-  geom_col() +
+  geom_col(fill = "#1D2769") +
   theme_classic() +
   theme(axis.text = element_text(size = 15)) +
   scale_x_continuous(
-    expand = c(0, 0),
-    breaks = seq(from = 0, to = 15, by = 1)) +
+    expand = c(0, 0, 0.1, 0),
+    breaks = scales::breaks_width(1)) +
   scale_y_discrete(expand = c(0, 0)) +
   labs(x = "", 
        y = "")
 ggplotly(p)
 ```
 
+```{r}
+
+
+work_magnet_all %>% 
+  filter(grepl("02en5vm52", removed_rors)) %>% 
+  separate_rows(openalex_works_examples, sep = ";") %>% 
+  select(
+    "Issue" = github_issue_id,
+    "Structure" = removed_rors, 
+    "Signature" = raw_affiliation_name,
+    "Contacte" = contact_domain
+    ) %>% 
+  group_by(Issue, Structure, Signature, Contacte) %>% 
+  summarise("Publications" = n()) %>%
+  arrange(desc(Publications)) %>% 
+  reactable(
+    striped = TRUE, 
+    pagination = FALSE,
+    showSortable = TRUE,
+    searchable = TRUE,
+    defaultColDef = colDef(align = "left")
+    )
+```
+
+## 
+
+```{r}
+#| title: "Ajout de l'affiliation Sorbonne université"
+
+
+p <- work_magnet_all %>% 
+  filter(grepl("02en5vm52", added_rors)) %>% 
+  count(contact_domain) %>% 
+  ggplot() +
+  aes(y = fct_rev(fct_infreq(contact_domain, n)),
+      x = n) +
+  geom_col(fill = "#1D2769") +
+  theme_classic() +
+  theme(axis.text = element_text(size = 15)) +
+  scale_x_continuous(
+    expand = c(0, 0, 0.1, 0),
+    breaks = scales::breaks_width(10)) +
+  scale_y_discrete(expand = c(0, 0)) +
+  labs(x = "", 
+       y = "")
+ggplotly(p)
+```
+
+```{r}
+
+
+work_magnet_all %>% 
+  filter(grepl("02en5vm52", added_rors)) %>% 
+  separate_rows(openalex_works_examples, sep = ";") %>% 
+  select(
+    "Issue" = github_issue_id,
+    "Structure" = added_rors, 
+    "Signature" = raw_affiliation_name,
+    "Contacte" = contact_domain
+    ) %>% 
+  group_by(Issue, Structure, Signature, Contacte) %>% 
+  summarise("Publications" = n()) %>%
+  arrange(desc(Publications)) %>% 
+  reactable(
+    striped = TRUE, 
+    pagination = FALSE,
+    showSortable = TRUE,
+    searchable = TRUE,
+    defaultColDef = colDef(align = "left")
+    )
+```
 
 # Structures de recherche 
-
-## {.sidebar} 
 
 ## {width="60%"}
 
@@ -356,10 +447,8 @@ work_magnet_su %>%
   adorn_totals(where = "row") %>% 
   reactable(
     striped = TRUE, 
-    pagination = FALSE,
-    height = 600
+    pagination = FALSE
     ) 
-  
 ```
 
 ```{r}
@@ -382,7 +471,7 @@ work_magnet_su %>%
   adorn_totals(where = "row") %>% 
   reactable(
     striped = TRUE, 
-    pagination = FALSE,
-    height = 600)
+    pagination = FALSE
+    )
 ```
 
