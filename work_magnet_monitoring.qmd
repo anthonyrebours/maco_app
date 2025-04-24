@@ -83,7 +83,7 @@ en_cours <- work_magnet_su %>%
 
 ```{r}
 #| content: valuebox
-#| title: "Demandes de correction soumises" 
+#| title: "Demandes soumises" 
 list(
   value = demandes,
   icon = "box-arrow-in-up",
@@ -110,7 +110,7 @@ list(
 ```
 
 
-## Graphiques demandes soumises et non corrigées {width="55%"}
+## Graphiques demandes soumises et non corrigées {width="50%"}
 
 ### {.tabset title="Demandes de corrections soumises (par mois)"}
 
@@ -230,27 +230,33 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
-## Tableau détails demandes en cours {width="35%"}
-
-### 
+## Délais demandes 
 
 ```{r}
+#| title: "Répartition des demandes en fonction des délais de fermeture"
+
+
 df <- work_magnet_su %>% 
   mutate(date_closed = as.Date(date_closed)) %>% 
   mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
   mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
   
   
-summary(df$Délai)
-df %>% 
-  tabyl(Délai) %>%
+
+p <- df %>%
   ggplot() +
-  aes(x = Délai, 
-      y = n) +
-  geom_histogram()
+  aes(x = Délai) +
+  geom_histogram(binwidth = 1) +
+  theme_classic() +
+  scale_y_continuous(breaks = scales::breaks_width(50), 
+                     expand = c(0, 0)) +
+  scale_x_continuous(breaks = scales::breaks_width(25),
+                     expand = c(0, 1)) +
+  labs(x = "", y = "")
+ggplotly(p)
+summary(df$Délai)
 ```
 
-### 
 
 ```{r}
 #| title: "Demandes en cours"
@@ -262,21 +268,27 @@ work_magnet_su %>%
   mutate("Délai" = round(difftime(date_closed, date_opened, units = "days"))) %>% 
   mutate("Correction" = ifelse(has_added_rors == "1", "ror ajouté", "ror retiré")) %>% 
   mutate("Structure" = ifelse(has_added_rors == "1", added_rors, removed_rors)) %>% 
+  left_join(su_structures, by = c("Structure" = "ror")) %>%
+  mutate(Acronymes = str_glue("({Acronymes})")) %>% 
+  unite("Structure", c("Structure", "Acronymes"), sep = " ") %>% 
   select(
-    "Issue" = github_issue_id, 
-    Correction, 
+    "Issue" = github_issue_link, 
     Structure,
+    Correction,
     "Date d'ouverture" = date_opened,
     Délai
     ) %>% 
-  arrange(desc(Délai)) %>%
-  mutate(Délai = paste(Délai, "jours")) %>% 
+  arrange(desc(Délai)) %>% 
+  mutate(Délai = paste(Délai, "jours")) %>%
   reactable(
     striped = TRUE, 
     pagination = FALSE,
     showSortable = TRUE,
     searchable = TRUE,
-    defaultColDef = colDef(align = "left")
+    defaultColDef = colDef(align = "left"),
+    columns = list(Issue = colDef(cell = function(value) {
+      htmltools::tags$a(href = value, target = "_blank", as.character(value))
+    }))
     )
 ```
 
