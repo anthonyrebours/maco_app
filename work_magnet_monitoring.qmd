@@ -298,6 +298,7 @@ work_magnet_su %>%
 
 ```{r}
 #| title: "Retrait de l'affiliation Sorbonne université"
+#| height: "55%"
 
 
 p <- work_magnet_all %>% 
@@ -325,7 +326,7 @@ work_magnet_all %>%
   filter(grepl("02en5vm52", removed_rors)) %>% 
   separate_rows(openalex_works_examples, sep = ";") %>% 
   select(
-    "Issue" = github_issue_id,
+    "Issue" = github_issue_link,
     "Structure" = removed_rors, 
     "Signature" = raw_affiliation_name,
     "Contacte" = contact_domain
@@ -338,7 +339,10 @@ work_magnet_all %>%
     pagination = FALSE,
     showSortable = TRUE,
     searchable = TRUE,
-    defaultColDef = colDef(align = "left")
+    defaultColDef = colDef(align = "left"), 
+    columns = list(Issue = colDef(cell = function(value) {
+      htmltools::tags$a(href = value, target = "_blank", as.character(value))
+    }))
     )
 ```
 
@@ -346,6 +350,7 @@ work_magnet_all %>%
 
 ```{r}
 #| title: "Ajout de l'affiliation Sorbonne université"
+#| height: "55%"
 
 
 p <- work_magnet_all %>% 
@@ -372,9 +377,12 @@ ggplotly(p)
 work_magnet_all %>% 
   filter(grepl("02en5vm52", added_rors)) %>% 
   separate_rows(openalex_works_examples, sep = ";") %>% 
+  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
+  mutate(Acronymes = str_glue("({Acronymes})")) %>% 
+  unite("Structure", c("added_rors", "Acronymes"), sep = " ") %>% 
   select(
-    "Issue" = github_issue_id,
-    "Structure" = added_rors, 
+    "Issue" = github_issue_link,
+    Structure, 
     "Signature" = raw_affiliation_name,
     "Contacte" = contact_domain
     ) %>% 
@@ -386,7 +394,10 @@ work_magnet_all %>%
     pagination = FALSE,
     showSortable = TRUE,
     searchable = TRUE,
-    defaultColDef = colDef(align = "left")
+    defaultColDef = colDef(align = "left"),
+    columns = list(Issue = colDef(cell = function(value) {
+      htmltools::tags$a(href = value, target = "_blank", as.character(value))
+    }))
     )
 ```
 
@@ -394,8 +405,10 @@ work_magnet_all %>%
 
 ## {width="60%"}
 
+### {.tabset title="Demande de correction d'affiliations par structures"}
+
 ```{r}
-#| title: "Demande de correction d'affiliations par structures"
+#| title: "Graph"
 
 
 p <- work_magnet_su %>%  
@@ -423,13 +436,42 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
-## {width="40%"}
-
 ```{r}
-
+#| title: "Données"
 
 work_magnet_su %>% 
-  select(added_rors, raw_affiliation_name) %>%
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
+  separate_rows(added_rors, sep = ";") %>% 
+  filter(added_rors != "") %>% 
+  left_join(su_structures, by = c("added_rors" = "ror")) %>%
+  select(
+    "Structure" = Acronymes, 
+    "ror" = added_rors,
+    "Signatures non reconnues" = raw_affiliation_name,
+    "Issue" = github_issue_link, 
+    "Etat" = state
+  ) %>%
+  reactable(
+    pagination = FALSE, 
+    striped = TRUE, 
+    searchable = TRUE)
+```
+
+## 
+
+```{r}
+work_magnet_su %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
+  separate_rows(added_rors, sep = ";") %>% 
+  filter(added_rors != "") %>% 
+  left_join(su_structures, by = c("added_rors" = "ror")) %>%
+  filter(!grepl("02en5vm52", previous_rors)) %>% 
+  separate_rows(openalex_works_examples, sep = ";") %>%
+  group_by(Acronymes) %>% 
+  summarise("Publications" = n()) %>% 
+  arrange(desc(Publications)) %>% 
   reactable(
     pagination = FALSE, 
     striped = TRUE)
