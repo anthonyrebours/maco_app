@@ -338,7 +338,6 @@ work_magnet_all %>%
     striped = TRUE, 
     pagination = FALSE,
     showSortable = TRUE,
-    searchable = TRUE,
     defaultColDef = colDef(align = "left"), 
     columns = list(Issue = colDef(cell = function(value) {
       htmltools::tags$a(href = value, target = "_blank", as.character(value))
@@ -393,7 +392,6 @@ work_magnet_all %>%
     striped = TRUE, 
     pagination = FALSE,
     showSortable = TRUE,
-    searchable = TRUE,
     defaultColDef = colDef(align = "left"),
     columns = list(Issue = colDef(cell = function(value) {
       htmltools::tags$a(href = value, target = "_blank", as.character(value))
@@ -448,13 +446,14 @@ work_magnet_su %>%
   select(
     "Structure" = Acronymes, 
     "ror" = added_rors,
-    "Signatures non reconnues" = raw_affiliation_name,
+    "Raw affiliation strings non reconnues" = raw_affiliation_name,
     "Issue" = github_issue_link, 
     "Etat" = state
   ) %>%
   reactable(
     pagination = FALSE, 
-    striped = TRUE, 
+    striped = TRUE,
+    showSortable = TRUE, 
     searchable = TRUE)
 ```
 
@@ -474,58 +473,8 @@ work_magnet_su %>%
   arrange(desc(Publications)) %>% 
   reactable(
     pagination = FALSE, 
-    striped = TRUE)
-```
-
-# Corrections globales
-
-## {ror manquants corrigés (au total)}
-
-```{r}
-#| title: "Publications récupérées (par institutions de recherche)"
-
-
-work_magnet_su %>% 
-  filter(!is.na(date_closed)) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
-  separate_rows(openalex_works_examples, sep = ";") %>% 
-  group_by(added_rors) %>% 
-  count() %>% 
-  match_df(dictionary = thesaurus, 
-           from = "from", 
-           to = "to", 
-           by = "col") %>%
-  filter(!is.na(added_rors)) %>% 
-  arrange(desc(n)) %>% 
-  adorn_totals(where = "row") %>% 
-  reactable(
-    striped = TRUE, 
-    pagination = FALSE
-    ) 
-```
-
-```{r}
-#| title: "Demandes de correction (par institutions de recherche)"
-
-
-work_magnet_su %>% 
-  filter(!is.na(date_closed)) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>% 
-  separate_rows(added_rors, sep = ";") %>% 
-  group_by(added_rors) %>% 
-  count() %>% 
-  match_df(dictionary = thesaurus, 
-           from = "from", 
-           to = "to", 
-           by = "col") %>% 
-  filter(!is.na(added_rors)) %>% 
-  arrange(desc(n)) %>% 
-  adorn_totals(where = "row") %>% 
-  reactable(
-    striped = TRUE, 
-    pagination = FALSE
-    )
+    striped = TRUE,
+    showSortable = TRUE,
+    searchable = TRUE)
 ```
 
