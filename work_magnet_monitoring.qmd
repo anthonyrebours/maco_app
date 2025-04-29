@@ -26,7 +26,9 @@ pacman::p_load(
   reactable, 
   janitor, 
   forcats, 
-  plotly
+  plotly, 
+  shiny,
+  bslib
 )
 
 
@@ -460,21 +462,25 @@ work_magnet_su %>%
 ## 
 
 ```{r}
-work_magnet_su %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
-  separate_rows(added_rors, sep = ";") %>% 
-  filter(added_rors != "") %>% 
-  left_join(su_structures, by = c("added_rors" = "ror")) %>%
-  filter(!grepl("02en5vm52", previous_rors)) %>% 
-  separate_rows(openalex_works_examples, sep = ";") %>%
+#| title: Publications réaffiliées à Sorbonne Université
+
+
+dataset <- work_magnet_su %>% 
+  separate_rows(added_rors, sep = ";") %>%
+  filter(added_rors != "") %>%
+  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
+  separate_rows(openalex_works_examples, sep = ";") 
+
+
+dataset %>% 
+  filter(!grepl("02en5vm52", previous_rors)) %>%
   group_by(Acronymes) %>% 
   summarise("Publications" = n()) %>% 
   arrange(desc(Publications)) %>% 
   reactable(
     pagination = FALSE, 
     striped = TRUE,
-    showSortable = TRUE,
-    searchable = TRUE)
+    showSortable = TRUE)
 ```
+
 
