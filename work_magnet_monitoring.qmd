@@ -11,6 +11,7 @@ format:
 
 ```{r}
 #| include: false
+#| context: setup
 
 
 ## Packages
@@ -21,14 +22,11 @@ pacman::p_load(
   here,
   DT, 
   lubridate, 
-  plotly, 
-  matchmaker, 
+  plotly,  
   reactable, 
   janitor, 
   forcats, 
-  plotly, 
-  shiny,
-  bslib
+  plotly
 )
 
 
@@ -37,14 +35,9 @@ work_magnet_all <- import(here("data", "work_magnet_all.csv"))
 su_structures <- import(here("data", "su_structures.rds"))
 
 
-## Thesaurus ror pour institutions de recherche
-thesaurus <- import(here("data", "thesaurus_ror.csv"))
-
-
 ## Information mises à jour
 maj <- file.info(here("data", "work_magnet_all.csv"))$mtime
 maj <- as.Date(maj, format = "%Y-%m-%d")
-
 
 
 ## Préparation des données 
@@ -438,6 +431,7 @@ ggplotly(p)
 
 ```{r}
 #| title: "Données"
+
 
 work_magnet_su %>% 
   mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
