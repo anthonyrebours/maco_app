@@ -229,9 +229,10 @@ ggplotly(p)
 
 ```{r}
 #| title: "Répartition des demandes en fonction des délais de fermeture"
+#| layout-nrow: 2
 
-
-df <- work_magnet_su %>% 
+df <- work_magnet_su %>%
+  filter(year(date_opened) == 2025) %>% 
   mutate(date_closed = as.Date(date_closed)) %>% 
   mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
   mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
@@ -245,16 +246,24 @@ p <- df %>%
   theme_classic() +
   scale_y_continuous(breaks = scales::breaks_width(50), 
                      expand = c(0, 0)) +
-  scale_x_continuous(breaks = scales::breaks_width(25),
+  scale_x_continuous(breaks = scales::breaks_width(10),
                      expand = c(0, 1)) +
   labs(x = "", y = "")
 ggplotly(p)
-summary(df$Délai)
+
+df %>% 
+  rstatix::get_summary_stats(Délai) %>% 
+  select("Délai" = variable, min, q1, median, mean, q3, max) %>% 
+  mutate(Délai = recode(Délai, "Délai" = "jours")) %>% 
+  reactable()
 ```
 
 
+
 ```{r}
-#| title: "Demandes en cours"
+#| eval: false
+#| include: false
+#| title: Demandes en cours
 
 
 work_magnet_su %>% 
