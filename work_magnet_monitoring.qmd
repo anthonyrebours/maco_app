@@ -58,6 +58,10 @@ work_magnet_su <- work_magnet_all %>%
 
 # Activités GT OpenAlex {}
 
+---
+subtitle: "mise à jour `r maj`"
+---
+
 ## Value box {width="10%"}
 
 ```{r}
@@ -225,10 +229,10 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
-## Délais demandes 
+## {.tabset title="Répartition des demandes en fonction des délais de fermeture"} 
 
 ```{r}
-#| title: "Répartition des demandes en fonction des délais de fermeture"
+#| title: "2025"
 #| layout-nrow: 2
 
 df <- work_magnet_su %>%
@@ -259,11 +263,8 @@ df %>%
 ```
 
 
-
 ```{r}
-#| eval: false
-#| include: false
-#| title: Demandes en cours
+#| title: "Détail"
 
 
 work_magnet_su %>% 
@@ -435,7 +436,7 @@ p <- work_magnet_su %>%
                     name = "Etat :") +
   labs(x = "", 
        y = "")
-ggplotly(p)
+ggplotly(p, height = 1200)
 ```
 
 ```{r}
