@@ -138,6 +138,7 @@ p <- work_magnet_su %>%
   scale_y_continuous(expand = c(0,0)) +
   labs(x = "", 
        y = "")
+
 ggplotly(p)
 ```
 
@@ -166,6 +167,7 @@ p <- work_magnet_su %>%
   scale_y_continuous(expand = c(0,0)) +
   labs(x = "", 
        y = "")
+
 ggplotly(p)
 ```
 
@@ -197,6 +199,7 @@ p <- work_magnet_su %>%
   scale_y_continuous(expand = c(0,0)) +
   labs(x = "", 
        y = "")
+
 ggplotly(p)
 ```
 
@@ -226,6 +229,7 @@ p <- work_magnet_su %>%
   scale_y_continuous(expand = c(0,0)) +
   labs(x = "", 
        y = "")
+
 ggplotly(p)
 ```
 
@@ -241,7 +245,11 @@ df <- work_magnet_su %>%
   mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
   mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
   
-  
+df %>% 
+  rstatix::get_summary_stats(Délai) %>% 
+  select("Délai" = variable, min, q1, median, mean, q3, max) %>% 
+  mutate(Délai = recode(Délai, "Délai" = "jours")) %>% 
+  reactable()  
 
 p <- df %>%
   ggplot() +
@@ -253,14 +261,10 @@ p <- df %>%
   scale_x_continuous(breaks = scales::breaks_width(10),
                      expand = c(0, 1)) +
   labs(x = "", y = "")
-ggplotly(p)
 
-df %>% 
-  rstatix::get_summary_stats(Délai) %>% 
-  select("Délai" = variable, min, q1, median, mean, q3, max) %>% 
-  mutate(Délai = recode(Délai, "Délai" = "jours")) %>% 
-  reactable()
+ggplotly(p, height = 600)
 ```
+
 
 
 ```{r}
@@ -321,6 +325,7 @@ p <- work_magnet_all %>%
   scale_y_discrete(expand = c(0, 0)) +
   labs(x = "", 
        y = "")
+
 ggplotly(p)
 ```
 
@@ -372,6 +377,7 @@ p <- work_magnet_all %>%
   scale_y_discrete(expand = c(0, 0)) +
   labs(x = "", 
        y = "")
+
 ggplotly(p)
 ```
 
@@ -436,7 +442,8 @@ p <- work_magnet_su %>%
                     name = "Etat :") +
   labs(x = "", 
        y = "")
-ggplotly(p, height = 1200)
+
+ggplotly(p, height = 1600)
 ```
 
 ```{r}
