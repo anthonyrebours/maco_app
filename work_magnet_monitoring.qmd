@@ -18,8 +18,6 @@ format:
 pacman::p_load(
   quarto,
   tidyverse, 
-  rio, 
-  here,
   DT, 
   lubridate, 
   plotly,  
@@ -31,12 +29,12 @@ pacman::p_load(
 
 
 ## Données
-work_magnet_all <- import(here("data", "work_magnet_all.csv"))
-su_structures <- import(here("data", "su_structures.rds"))
+work_magnet_all <- arrow::read_parquet(here::here("data", "work_magnet_all.parquet"))
+su_structures <- rio::import(here::here("data", "su_structures.rds"))
 
 
 ## Information mises à jour
-maj <- file.info(here("data", "work_magnet_all.csv"))$mtime
+maj <- file.info(here::here("data", "work_magnet_all.parquet"))$mtime
 maj <- as.Date(maj, format = "%Y-%m-%d")
 
 
