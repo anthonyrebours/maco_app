@@ -1,5 +1,5 @@
 ---
-title: "Monitoring des Affiliations et Curation d'Openalex V1"
+title: "Monitoring des Affiliations et Curation d'Openalex V2"
 format: 
   dashboard:
     embed-resources: true
@@ -23,7 +23,8 @@ pacman::p_load(
   reactable, 
   janitor, 
   forcats,
-  plotly
+  plotly,
+  htmltools
 )
 
 ## Données
@@ -105,9 +106,14 @@ list(
 ```
 
 
-## Graphiques demandes soumises et non corrigées {width="50%"}
+
+## Graphiques demandes soumises {width="50%"}
+
+
 
 ### {.tabset title="Demandes de corrections soumises (par mois)"}
+
+
 
 ```{r}
 #| title: "2025"
@@ -143,6 +149,8 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
+
+
 ```{r}
 #| title: "2024"
 
@@ -177,116 +185,65 @@ p <- work_magnet_su %>%
 ggplotly(p)
 ```
 
-### {.tabset title="Demandes non corrigées (par mois)"}
+
+
+### {.tabset } 
+
+
 
 ```{r}
-#| title: "2025"
-
-
-monthly_breaks <- seq.Date(
-  from = as.Date("2025-01-01"), 
-  to = as.Date("2025-12-31"), 
-  by = "months")
-
-
-p <- work_magnet_su %>% 
-  filter(year(date_opened) == 2025) %>% 
-  filter(is.na(date_closed)) %>% 
-  ggplot() +
-  aes(x = date_opened) + 
-  geom_histogram(
-    breaks = monthly_breaks,
-    color = "white",
-    fill = "#1D2769") +
-  theme_classic() +
-  scale_x_date(
-    date_breaks = "1 months", 
-    date_labels = "%b",
-    expand = c(0, 0.1)
-  ) +
-  scale_y_continuous(expand = c(0,0)) +
-  theme(
-    axis.text = element_text(size = 13),
-    axis.text.x = element_text(angle = 45),
-    axis.title = element_blank()
-  )
-
-ggplotly(p)
-```
-
-```{r}
-#| title: "2024"
-
-
-monthly_breaks <- seq.Date(
-  from = as.Date("2024-01-01"), 
-  to = as.Date("2024-12-31"), 
-  by = "months")
-
-
-p <- work_magnet_su %>% 
-  filter(year(date_opened) == 2024) %>% 
-  filter(is.na(date_closed)) %>% 
-  ggplot() +
-  aes(x = date_opened) + 
-  geom_histogram(
-    breaks = monthly_breaks,
-    color = "white",
-    fill = "#1D2769") +
-  theme_classic() +
-  scale_x_date(
-    date_breaks = "1 months", 
-    date_labels = "%b",
-    expand = c(0, 0.1)
-  ) +
-  scale_y_continuous(expand = c(0,0)) +
-  theme(
-    axis.text = element_text(size = 13),
-    axis.text.x = element_text(angle = 45),
-    axis.title = element_blank()
-  )
-
-ggplotly(p)
-```
-
-## {.tabset title="Répartition des demandes en fonction des délais de fermeture"} 
-
-```{r}
-#| title: "2025"
-#| layout-nrow: 2
-
-df <- work_magnet_su %>%
-  filter(year(date_opened) == 2025) %>% 
-  mutate(date_closed = as.Date(date_closed)) %>% 
-  mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
-  mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
+#| title: "Demande de corrections par structures"
+ 
+bar_chart <- function(label, width = "100%", height = "0.875rem", fill = "#00bfc4", background = NULL) {
+  bar <- div(style = list(background = fill, width = width, height = height))
+  chart <- div(style = list(flexGrow = 1, marginLeft = "0.375rem", background = background), bar)
+  div(style = list(display = "flex", alignItems = "center"), label, chart)
+}
   
-df %>% 
-  rstatix::get_summary_stats(Délai) %>% 
-  select("Délai" = variable, min, q1, median, mean, q3, max) %>% 
-  mutate(Délai = recode(Délai, "Délai" = "jours")) %>% 
-  reactable()  
-
-p <- df %>%
-  ggplot() +
-  aes(x = Délai) +
-  geom_histogram(binwidth = 1) +
-  theme_classic() +
-  scale_y_continuous(
-    breaks = scales::breaks_width(50), 
-    expand = c(0, 0)
-  ) +
-  scale_x_continuous(
-    breaks = scales::breaks_width(10), 
-    expand = c(0, 1)
-  ) +
-  theme(
-    axis.text = element_text(size = 9),
-    axis.text.x = element_text(angle = 45),
-    axis.title = element_blank()
+work_magnet_su %>%  
+  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
+  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
+  separate_rows(added_rors, sep = ";") %>% 
+  filter(added_rors != "") %>% 
+  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
+  mutate(Acronymes = ifelse(
+    !is.na(Acronymes), 
+    Acronymes, 
+    added_rors)) %>% 
+  count(Acronymes, state) %>%
+  group_by(Acronymes) %>% 
+  mutate(
+    total = sum(n),
+    closed = ifelse(any(state == "closed"), n[state == "closed"], 0),
+    proportion = closed/sum(n)
+  ) %>% 
+  select(Acronymes, total, proportion)  %>%
+  distinct() %>% 
+  reactable(
+    pagination = FALSE,
+    defaultSorted = "total",
+    columns = list(
+      Acronymes = colDef(
+        name = "Structures de recherche"
+      ),
+      total = colDef(
+        name = "Demandes de correction",
+        defaultSortOrder = "desc",
+        format = colFormat(separators = TRUE)
+      ),
+      proportion = colDef(
+        name = "Cloturées",
+        defaultSortOrder = "desc",
+        cell = function(value) {
+          value <- paste0(format(value * 100, digits = 2, nsmall = 1), "%")
+          value <- format(value, width = 6, justify = "right")
+          bar_chart(value, width = value, fill = "#076fa2", background = "#e1e1e1")
+        },
+        align = "left",
+        style = list(fontFamily = "monospace", whiteSpace = "pre")
+      )
+    )
   )
-
-ggplotly(p, height = 600)
 ```
 
 
@@ -324,6 +281,56 @@ work_magnet_su %>%
     }))
     )
 ```
+
+
+## 
+
+
+
+```{r}
+#| title: "Répartition des demandes en fonction des délais de fermeture"
+#| height: 80%
+
+df <- work_magnet_su %>%
+  filter(year(date_opened) == 2025) %>% 
+  mutate(date_closed = as.Date(date_closed)) %>% 
+  mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
+  mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
+
+p <- df %>%
+  ggplot() +
+  aes(x = Délai) +
+  geom_histogram(binwidth = 1) +
+  theme_classic() +
+  scale_y_continuous(
+    breaks = scales::breaks_width(75), 
+    expand = c(0, 0)
+  ) +
+  scale_x_continuous(
+    breaks = scales::breaks_width(10), 
+    expand = c(0, 1)
+  ) +
+  theme(
+    axis.text = element_text(size = 9),
+    axis.text.x = element_text(angle = 45),
+    axis.title = element_blank()
+  )
+
+ggplotly(p)
+```
+
+
+
+```{r}
+
+  
+df %>% 
+  rstatix::get_summary_stats(Délai) %>% 
+  select("Délai" = variable, min, q1, median, mean, q3, max) %>% 
+  mutate(Délai = recode(Délai, "Délai" = "jours")) %>% 
+  reactable() 
+```
+
 
 # Corrections externes
 
@@ -405,7 +412,10 @@ p <- work_magnet_all %>%
 ggplotly(p)
 ```
 
+
+
 ```{r}
+
 
 work_magnet_all %>% 
   filter(grepl("02en5vm52", added_rors)) %>% 
@@ -433,43 +443,7 @@ work_magnet_all %>%
     )
 ```
 
-# Structures de recherche 
-
-## {width="60%"}
-
-### {.tabset title="Demande de correction d'affiliations par structures"}
-
-```{r}
-#| title: "Graph"
-
-p <- work_magnet_su %>%  
-  mutate(added_rors = str_remove(added_rors, pattern = "02en5vm52;")) %>% 
-  mutate(added_rors = str_remove(added_rors, pattern = ";02en5vm52")) %>%  
-  separate_rows(added_rors, sep = ";") %>% 
-  filter(added_rors != "") %>% 
-  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
-  mutate(Acronymes = ifelse(
-    !is.na(Acronymes), 
-    Acronymes, 
-    added_rors)) %>% 
-  count(Acronymes, state) %>% 
-  ggplot() +
-  aes(y = fct_rev(fct_infreq(Acronymes, n)),
-      x = n, 
-      fill = state) + 
-  geom_col() +
-  theme_classic() +
-  scale_fill_manual(values = c("open" = "#E6332A", 
-                               "closed" = "#1D2769"),
-                    name = "Etat :") +
-  labs(x = "", 
-       y = "")
-
-
-ggplotly(p, height = 1600)
-```
-
-## 
+# Correction par publications
 
 ```{r}
 #| title: Publications réaffiliées à Sorbonne Université
@@ -492,5 +466,7 @@ dataset %>%
     striped = TRUE,
     showSortable = TRUE)
 ```
+
+
 
 
