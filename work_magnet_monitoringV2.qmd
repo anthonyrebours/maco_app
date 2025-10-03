@@ -4,9 +4,6 @@ format:
   dashboard:
     embed-resources: true
     orientation: columns
-    theme: 
-      - flatly 
-      - custom.scss
 ---
 
 ```{r}
@@ -39,16 +36,26 @@ maj <- as.Date(maj, format = "%Y-%m-%d")
 
 ## Préparation des données 
 su_structures <- su_structures %>% unnest(display_name_acronyms)
-su_structures <- su_structures %>% 
+
+su_structures <- 
+  su_structures %>% 
   distinct(across(-display_name_acronyms), .keep_all = TRUE)
-su_structures <- su_structures %>% 
-  mutate(display_name_acronyms = ifelse(
+
+su_structures <- 
+  su_structures %>% 
+  mutate(
+    display_name_acronyms = ifelse(
     !is.na(display_name_acronyms), 
     display_name_acronyms, 
-    display_name))
-su_structures <- su_structures %>% 
+    display_name
+    )
+  )
+su_structures <- 
+  su_structures %>% 
   separate(display_name_acronyms, into = "Acronymes", sep = ":")
-work_magnet_su <- work_magnet_all %>% 
+
+work_magnet_su <- 
+  work_magnet_all %>% 
   filter(contact_domain == "sorbonne-universite.fr")
 
 ```
@@ -58,6 +65,8 @@ work_magnet_su <- work_magnet_all %>%
 ---
 subtitle: "mise à jour `r maj`"
 ---
+
+
 
 ## Value box {width="10%"}
 
@@ -82,8 +91,7 @@ en_cours <- work_magnet_su %>%
 #| title: "Demandes soumises" 
 list(
   value = demandes,
-  icon = "box-arrow-in-up",
-  color = "vb-primary"
+  icon = "box-arrow-in-up"
 )
 ```
 ```{r}
@@ -91,8 +99,7 @@ list(
 #| title: "Demandes en cours"
 list(
   value = en_cours, 
-  icon = "arrow-repeat",
-  color = "vb-info"
+  icon = "arrow-repeat"
 )
 ```
 ```{r}
@@ -100,14 +107,13 @@ list(
 #| title: "Demandes traitées"
 list(
   value = traitees,
-  icon = "check-circle",
-  color = "vb-success"
+  icon = "check-circle"
 )
 ```
 
 
 
-## Graphiques demandes soumises {width="50%"}
+##
 
 
 
@@ -117,7 +123,6 @@ list(
 
 ```{r}
 #| title: "2025"
-
 
 monthly_breaks <- seq.Date(
   from = as.Date("2025-01-01"), 
@@ -132,7 +137,8 @@ p <- work_magnet_su %>%
   geom_histogram(
     breaks = monthly_breaks, 
     color = "white", 
-    fill = "#1D2769") +
+    fill = "#4f79a7"
+  ) +
   theme_classic() +
   scale_x_date(
     date_breaks = "1 months",
@@ -154,7 +160,6 @@ ggplotly(p)
 ```{r}
 #| title: "2024"
 
-
 monthly_breaks <- seq.Date(
   from = as.Date("2024-01-01"), 
   to = as.Date("2024-12-31"), 
@@ -168,7 +173,7 @@ p <- work_magnet_su %>%
   geom_histogram(
     breaks = monthly_breaks,
     color = "white",
-    fill = "#1D2769") +
+    fill = "#4f79a7") +
   theme_classic() +
   scale_x_date(
     date_breaks = "1 months", 
@@ -187,14 +192,15 @@ ggplotly(p)
 
 
 
-### {.tabset } 
+### {.tabset} 
 
 
 
 ```{r}
 #| title: "Demande de corrections par structures"
  
-bar_chart <- function(label, width = "100%", height = "0.875rem", fill = "#00bfc4", background = NULL) {
+bar_chart <- 
+  function(label, width = "100%", height = "0.875rem", fill = "#00bfc4", background = NULL) {
   bar <- div(style = list(background = fill, width = width, height = height))
   chart <- div(style = list(flexGrow = 1, marginLeft = "0.375rem", background = background), bar)
   div(style = list(display = "flex", alignItems = "center"), label, chart)
@@ -206,10 +212,13 @@ work_magnet_su %>%
   separate_rows(added_rors, sep = ";") %>% 
   filter(added_rors != "") %>% 
   left_join(su_structures, by = c("added_rors" = "ror")) %>% 
-  mutate(Acronymes = ifelse(
+  mutate(
+    Acronymes = ifelse(
     !is.na(Acronymes), 
     Acronymes, 
-    added_rors)) %>% 
+    added_rors
+    )
+  ) %>% 
   count(Acronymes, state) %>%
   group_by(Acronymes) %>% 
   mutate(
@@ -237,7 +246,7 @@ work_magnet_su %>%
         cell = function(value) {
           value <- paste0(format(value * 100, digits = 2, nsmall = 1), "%")
           value <- format(value, width = 6, justify = "right")
-          bar_chart(value, width = value, fill = "#076fa2", background = "#e1e1e1")
+          bar_chart(value, width = value, fill = "#4f79a7", background = "#e1e1e1")
         },
         align = "left",
         style = list(fontFamily = "monospace", whiteSpace = "pre")
@@ -250,7 +259,6 @@ work_magnet_su %>%
 
 ```{r}
 #| title: "Détail"
-
 
 work_magnet_su %>% 
   filter(state == "open") %>% 
@@ -283,24 +291,31 @@ work_magnet_su %>%
 ```
 
 
-## 
+
+##
 
 
 
 ```{r}
 #| title: "Répartition des demandes en fonction des délais de fermeture"
-#| height: 80%
 
-df <- work_magnet_su %>%
+df <- 
+  work_magnet_su %>%
   filter(year(date_opened) == 2025) %>% 
   mutate(date_closed = as.Date(date_closed)) %>% 
   mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
   mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
 
+df_stats <- 
+  df %>% 
+  rstatix::get_summary_stats(Délai) %>% 
+  select("Délai" = variable, min, q1, median, mean, q3, max)
+
 p <- df %>%
   ggplot() +
   aes(x = Délai) +
   geom_histogram(binwidth = 1) +
+  geom_hline(yintercept = median_price, col = "grey30", lty = "dashed") +
   theme_classic() +
   scale_y_continuous(
     breaks = scales::breaks_width(75), 
@@ -321,20 +336,13 @@ ggplotly(p)
 
 
 
-```{r}
-
-  
-df %>% 
-  rstatix::get_summary_stats(Délai) %>% 
-  select("Délai" = variable, min, q1, median, mean, q3, max) %>% 
-  mutate(Délai = recode(Délai, "Délai" = "jours")) %>% 
-  reactable() 
-```
-
-
 # Corrections externes
 
+
+
 ## 
+
+
 
 ```{r}
 #| title: "Retrait de l'affiliation Sorbonne université"
@@ -347,7 +355,7 @@ p <- work_magnet_all %>%
   ggplot() +
   aes(y = fct_rev(fct_infreq(contact_domain, n)),
       x = n) +
-  geom_col(fill = "#1D2769") +
+  geom_col(fill = "#4f79a7") +
   theme_classic() +
   theme(axis.text = element_text(size = 15)) +
   scale_x_continuous(
@@ -380,10 +388,14 @@ work_magnet_all %>%
     pagination = FALSE,
     showSortable = TRUE,
     defaultColDef = colDef(align = "left"), 
-    columns = list(Issue = colDef(cell = function(value) {
+    columns = list(
+      Issue = colDef(
+        cell = function(value) {
       htmltools::tags$a(href = value, target = "_blank", as.character(value))
-    }))
+        }
+      )
     )
+  )
 ```
 
 ## 
@@ -399,7 +411,7 @@ p <- work_magnet_all %>%
   ggplot() +
   aes(y = fct_rev(fct_infreq(contact_domain, n)),
       x = n) +
-  geom_col(fill = "#1D2769") +
+  geom_col(fill = "#4f79a7") +
   theme_classic() +
   theme(axis.text = element_text(size = 15)) +
   scale_x_continuous(
