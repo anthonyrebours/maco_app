@@ -304,18 +304,16 @@ df <-
   filter(year(date_opened) == 2025) %>% 
   mutate(date_closed = as.Date(date_closed)) %>% 
   mutate(date_closed = if_else(is.na(date_closed), maj, date_closed)) %>% 
-  mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days"))))
+  mutate("Délai" = as.integer(round(difftime(date_closed, date_opened, units = "days")))) 
 
-df_stats <- 
-  df %>% 
-  rstatix::get_summary_stats(Délai) %>% 
-  select("Délai" = variable, min, q1, median, mean, q3, max)
+median <- median(df$Délai)
 
 p <- df %>%
   ggplot() +
   aes(x = Délai) +
   geom_histogram(binwidth = 1) +
-  geom_hline(yintercept = median_price, col = "grey30", lty = "dashed") +
+  geom_vline(xintercept = median, col = "#FF330F", lty = "dashed") +
+  annotate("text", x = median + 15, y = 2000, label = "Délai médian", size = 3, color = "#FF330F") +
   theme_classic() +
   scale_y_continuous(
     breaks = scales::breaks_width(75), 
@@ -325,10 +323,13 @@ p <- df %>%
     breaks = scales::breaks_width(10), 
     expand = c(0, 1)
   ) +
+  labs(
+    x = "Nombre de jours",
+    y = "Nombre de demandes"
+  ) +
   theme(
     axis.text = element_text(size = 9),
-    axis.text.x = element_text(angle = 45),
-    axis.title = element_blank()
+    axis.text.x = element_text(angle = 45)
   )
 
 ggplotly(p)
@@ -336,7 +337,33 @@ ggplotly(p)
 
 
 
-# Corrections externes
+
+
+# Publications Sorbonne Université
+
+
+
+```{r}
+#| title: Publications réaffiliées à Sorbonne Université
+
+
+dataset <- work_magnet_su %>% 
+  separate_rows(added_rors, sep = ";") %>%
+  filter(added_rors != "") %>%
+  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
+  separate_rows(openalex_works_examples, sep = ";") 
+
+
+dataset %>% 
+  filter(!grepl("02en5vm52", previous_rors)) %>%
+  group_by(Acronymes) %>% 
+  summarise("Publications" = n()) %>% 
+  arrange(desc(Publications)) %>% 
+  reactable(
+    pagination = FALSE, 
+    striped = TRUE,
+    showSortable = TRUE)
+```
 
 
 
@@ -454,31 +481,3 @@ work_magnet_all %>%
     }))
     )
 ```
-
-# Correction par publications
-
-```{r}
-#| title: Publications réaffiliées à Sorbonne Université
-
-
-dataset <- work_magnet_su %>% 
-  separate_rows(added_rors, sep = ";") %>%
-  filter(added_rors != "") %>%
-  left_join(su_structures, by = c("added_rors" = "ror")) %>% 
-  separate_rows(openalex_works_examples, sep = ";") 
-
-
-dataset %>% 
-  filter(!grepl("02en5vm52", previous_rors)) %>%
-  group_by(Acronymes) %>% 
-  summarise("Publications" = n()) %>% 
-  arrange(desc(Publications)) %>% 
-  reactable(
-    pagination = FALSE, 
-    striped = TRUE,
-    showSortable = TRUE)
-```
-
-
-
-
